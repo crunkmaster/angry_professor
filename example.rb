@@ -6,6 +6,13 @@ require 'fileutils'
 archives = Dir.glob("*.tar")
 inputs = Array.new
 c_failure = Array.new
+successful = Array.new
+
+for item in ARGV
+  inputs.push(item)
+end
+
+command = "./a.out"
 
 puts "what's the file name?"
 assignment_name = gets.chomp()
@@ -18,12 +25,25 @@ for archive in archives
   username = username + ".c"
   File.rename(assignment_name, username)
 
-  output = `gcc -ansi -Werror -pedantic #{username}`
-  result = $?.success?
+  c_output = `gcc -ansi -Werror -pedantic #{username}`
+  c_result = $?.success?
 
-  if result != 0
+  if c_result != 0
     c_failure.push(username[0..-3])
+    next
   end
+
+  for input in inputs
+    command = command + " " + input
+  end
+
+  r_output = `#{command}`
+  puts r_output
+  puts "does this look correct?"
+  if gets.chomp() == 'y'
+    # save it to a file of good programs
+   
+      
 end
 
 print "these are the failures: #{c_failure}\n"
@@ -34,9 +54,6 @@ print "these are the failures: #{c_failure}\n"
 ## test output from a.out with answer from solutions
 
 # grab all inputs from ARGV
-for item in ARGV
-  inputs.push(item)
-end
 
 for input in inputs
   print "input: #{input}\n"
