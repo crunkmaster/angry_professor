@@ -2,77 +2,88 @@
 
 require 'fileutils'
 
-# get all the submission archives
-archives = Dir.glob("*.tar")
+archives   = Dir.glob("*.tar") # get all the submission archives
+command    = "./a.out"
+c_failure  = []
+r_failure  = []
+outputs    = []
+successful = []
 
-inputs = Array.new
-c_failure = Array.new
-r_failure = Array.new 
-successful = Array.new
+if File.exist?( "output" )
+  fin = File.open( "output","r" )
+  output = fin.read()
+else
+  output = []
+end
 
-inputs = ARGV
-
-command = "./a.out"
-
-for input in inputs
-  command = command + " " + input
+for arg in ARGV
+  command = command + " " + arg
 end
 
 ARGV.clear
 
-puts "what is the file name?"
+puts "What is the file name?"
 assignment_name = gets.chomp()
 
-puts archives
+puts "input?"
+input = gets.chomp() 
 
 for archive in archives
 
   system("tar xf #{archive}")
   username = archive[0..-5]
-  username = username + ".c"
-  File.rename(assignment_name, username)
-
-  puts username[0..-3] 
-
-  c_output = `gcc -Werror -ansi -pedantic #{username}`
+  File.rename(assignment_name + ".c", username + ".c" )
+ 
+  puts username 
+   
+  c_output = `gcc -Werror -ansi -pedantic #{username}.c`
   c_result = $?.success?
   
-  puts c_result
-
   if c_result == false 
-    c_failure.push(username[0..-3])
-
-    puts c_result
+    c_failure.push(username)
     print "!!!ERROR WITH COMPOLATION!!!\n "
-
     next
   end
 
   puts command
-  r_output = `#{command}`
+
+#  r_output = `#{command} < #{input}`
+   r_output = `echo #{input} | #{command}`
   puts r_output + "\nCorrect?"
 
-  if r_output.upcase.include?("RIGHT TURN") 
-    successful.push(username[0..-3])
+  if r_output.upcase.include?( "#{output}" ) 
+    successful.push(username)
     puts "In the bag"
     next
   end    
   
+#  if gets.chomp() != 'y'
+  r_failure.push(username)
+  next
+  #end 
   
-  
-  if gets.chomp() != 'y'
-  
-    r_failure.push(username[0..-3]) ;
-    next
-   
-  end 
-  
-  successful.push(username[0..-3])
-    
+  successful.push(username)
 end
 
-print "These are the compile-time failures: #{c_failure}\n"
-print "These are the run-time failures: #{r_failure}\n"
-print "These are the successes: #{successful}\n"
+system( "rm -f a.out" )
 
+# output to file
+logfile = File.new( "result", "w")
+logfile.write( "Total numer of submissions: #{archives.size}.\n" )
 
+#logfile.write( "Total numer of submissions on time: #{submission_number}.\n" )
+
+logfile.write("\nAll lists are listed alphabetically by last name.\n\nCompile-time failures: #{c_failure.size}\n")
+for failure in c_failure.sort_by { |failure| failure[1..-1] }
+  logfile.write("#{failure}, \n")
+end
+
+logfile.write("\nRun-time failures: #{r_failure.size}\n")
+for failure in r_failure.sort_by { |failure| failure[1..-1] }
+  logfile.write("#{failure}, \n")
+end
+
+logfile.write("\nSuccesses: #{successful.size}\n")
+for success in successful.sort_by { |success| success[1..-1] }
+  logfile.write("#{success}, \n")
+end
